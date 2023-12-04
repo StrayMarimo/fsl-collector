@@ -50,7 +50,7 @@ DATA_PATH = os.path.join('MP_Data')
 
 ################### TODO: ADD VALUES HERE #######################
 # Actions that we try to detect
-actions = np.array(['magandang umaga'])
+actions = np.array(['a', 'b', 'c'])
 
 # Thirty videos worth of data
 no_sequences = 30
