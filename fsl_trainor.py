@@ -2,7 +2,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
-from tensorflow.keras.callbacks import TensorBoard
+from tensorflow.keras.callbacks import TensorBoard, Callback
 
 
 import numpy as np
@@ -12,7 +12,8 @@ import os
 
 np.random.seed(42)
 
-data_folder = "data"
+data_folder = "MP_Data"
+basic_folder= "MP_Data/basic"
 
 # Function to filter folders based on numeric names
 def is_numeric_folder(folder_name):
@@ -20,11 +21,12 @@ def is_numeric_folder(folder_name):
 
 labels = []
 sequences = []
-label_map = {
-    "ako": 0,
-    "maganda": 1,
-    "kumain": 2
-}
+
+subfolders = [f.name for f in os.scandir(basic_folder) if f.is_dir()]
+label_map = {subfolder: index for index, subfolder in enumerate(subfolders)}
+
+
+print(label_map)
 
 # Iterate through the main data folder
 for pos_folder in os.listdir(data_folder):
@@ -52,44 +54,17 @@ print(y.shape)
 
 print(labels)
 
-# DATA_PATH = 'MP_Data'
-# # subfolder_names = ['a', 'b', 'c']
-# # print(subfolder_names)
-# actions = np.array([
-#     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
-#     'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-#     'u','v','w','x','y','z','0','1','2','3','4','5',
-#     '6','7','8','9','10'
-# ])
-
-# no_sequences = 30
-# sequence_length = 30
-
-# label_map = {label:num for num, label in enumerate(actions)}
-# sequences, labels = [], []
-
-# print(label_map)
-
-# for action in actions:
-#     for sequence in np.array(os.listdir(os.path.join(DATA_PATH, action))).astype(int):
-#         window = []
-#         for frame_num in range(sequence_length):
-#             res = np.load(os.path.join(DATA_PATH, action, str(sequence), "{}.npy".format(frame_num)))
-#             window.append(res)
-#         sequences.append(window)
-#         labels.append(label_map[action])
-
-
-# X = np.array(sequences)
-# y = to_categorical(labels).astype(int)
-# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05)
-
 log_dir = os.path.join('Logs')
 tb_callback = TensorBoard(log_dir=log_dir)
+class MyCallback(Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        if logs is not None and 'categorical_accuracy' in logs and logs['categorical_accuracy'] > 0.95:
+            print('\nReached categorical accuracy of 90%.\nStopping training...\n')
+            self.model.stop_training = True
 
 
 model = Sequential()
-model.add(LSTM(64, return_sequences=True, activation='relu', input_shape=(30,1662)))
+model.add(LSTM(64, return_sequences=True, activation='relu', input_shape=(30,1692)))
 model.add(LSTM(128, return_sequences=True, activation='relu'))
 model.add(LSTM(64, return_sequences=False, activation='relu'))
 model.add(Dense(64, activation='relu'))
@@ -98,10 +73,10 @@ model.add(Dense(len(label_map), activation='softmax'))
 
 model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['categorical_accuracy'])
 
-model.fit(X, y, epochs=100, callbacks=[tb_callback])
+model.fit(X, y, epochs=500, callbacks=[tb_callback, MyCallback()])
 
 model.summary()
 
-model.save('action.h5')
+model.save('model.h5')
 
 
