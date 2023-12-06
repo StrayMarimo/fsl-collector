@@ -11,35 +11,32 @@ import os
 import mediapipe as mp
 
 model = load_model('action.h5')
-model.load_weights('action.h5')
+# model.load_weights('action.h5')
 
 mp_holistic = mp.solutions.holistic # Holistic model
 mp_drawing = mp.solutions.drawing_utils # Drawing utilities
 
 actions = np.array([
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
-    'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-    'u','v','w','x','y','z','0','1','2','3','4','5',
-    '6','7','8','9','10'
+    'ako', 'maganda', 'kumain'
 ])
 def draw_landmarks(image, results):
     
-    mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACEMESH_CONTOURS, 
-        mp_drawing.DrawingSpec(color=(80,110,10), thickness=1, circle_radius=1), 
-        mp_drawing.DrawingSpec(color=(80,256,121), thickness=1, circle_radius=1)
-    ) 
+    mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACEMESH_TESSELATION,
+                              mp_drawing.DrawingSpec(color=(80,110,10), thickness=1, circle_radius=1),
+                              mp_drawing.DrawingSpec(color=(80,256,121), thickness=1, circle_radius=1)
+                              )
     mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
-        mp_drawing.DrawingSpec(color=(80,22,10), thickness=2, circle_radius=4), 
-        mp_drawing.DrawingSpec(color=(80,44,121), thickness=2, circle_radius=2)
-    )
+                                mp_drawing.DrawingSpec(color=(80,22,10), thickness=2, circle_radius=4),
+                                mp_drawing.DrawingSpec(color=(80,44,121), thickness=2, circle_radius=2)
+                                )
     mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
-        mp_drawing.DrawingSpec(color=(121,22,76), thickness=2, circle_radius=4), 
-        mp_drawing.DrawingSpec(color=(121,44,250), thickness=2, circle_radius=2)
-    ) 
+                                mp_drawing.DrawingSpec(color=(121,22,76), thickness=2, circle_radius=4),
+                                mp_drawing.DrawingSpec(color=(121,44,250), thickness=2, circle_radius=2)
+                                )
     mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
-        mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=4),
-        mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
-    ) 
+                                mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=4),
+                                mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
+                                )
 
 
 def mediapipe_detection(image, model):
@@ -51,12 +48,11 @@ def mediapipe_detection(image, model):
     return image, results
 
 def extract_keypoints(results):
-    pose = np.array([[res.x, res.y, res.z, res.visibility] for res in results.pose_landmarks.landmark]).flatten() if results.pose_landmarks else np.zeros(132)
-    face = np.array([[res.x, res.y, res.z] for res in results.face_landmarks.landmark]).flatten() if results.face_landmarks else np.zeros(1434)
-    lefthand = np.array([[res.x, res.y, res.z] for res in results.left_hand_landmarks.landmark]).flatten() if results.left_hand_landmarks else np.zeros(63)
-    righthand = np.array([[res.x, res.y, res.z] for res in results.right_hand_landmarks.landmark]).flatten() if results.right_hand_landmarks else np.zeros(63)
-    return np.concatenate([pose, face, lefthand, righthand])
-
+    pose = np.array([[res.x, res.y, res.z, res.visibility] for res in results.pose_landmarks.landmark]).flatten() if results.pose_landmarks else np.zeros(33*4)
+    face = np.array([[res.x, res.y, res.z] for res in results.face_landmarks.landmark]).flatten() if results.face_landmarks else np.zeros(468*3)
+    lh = np.array([[res.x, res.y, res.z] for res in results.left_hand_landmarks.landmark]).flatten() if results.left_hand_landmarks else np.zeros(21*3)
+    rh = np.array([[res.x, res.y, res.z] for res in results.right_hand_landmarks.landmark]).flatten() if results.right_hand_landmarks else np.zeros(21*3)
+    return np.concatenate([pose, face, lh, rh])
 
 colors = [(245,117,16), (117,245,16), (16,117,245)]
 # def prob_viz(res, actions, input_frame, colors):
@@ -75,7 +71,7 @@ threshold = 0.8
 
 cap = cv2.VideoCapture(0)
 # Set mediapipe model 
-with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5, refine_face_landmarks=True) as holistic:
+with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
     while cap.isOpened():
 
         # Read feed
