@@ -1,3 +1,6 @@
+from sklearn.metrics import multilabel_confusion_matrix, accuracy_score
+from tensorflow.keras.models import load_model
+
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
@@ -6,8 +9,7 @@ from tensorflow.keras.callbacks import TensorBoard, Callback
 
 
 import numpy as np
-import os
-
+import pandas as pd
 import os
 
 np.random.seed(42)
@@ -46,37 +48,38 @@ for pos_folder in os.listdir(data_folder):
                 sequences.append(window)
                 labels.append(label_map[class_folder])
 
-X = np.array(sequences)
-y = to_categorical(labels).astype(int)
+X_train = np.array(sequences)
+y_train = to_categorical(labels).astype(int)
 
-print(X.shape)
-print(y.shape)
+model = load_model('model.35v2.h5')
 
-print(labels)
+yhat = model.predict(X_train)
+ytrue = np.argmax(y_train, axis=1).tolist()
+yhat = np.argmax(yhat, axis=1).tolist()
 
-log_dir = os.path.join('Logs', 'data')
-tb_callback = TensorBoard(log_dir=log_dir)
-class MyCallback(Callback):
-    def on_epoch_end(self, epoch, logs=None):
-        if logs is not None and 'categorical_accuracy' in logs and logs['categorical_accuracy'] > 0.99:
-            print('\nReached categorical accuracy of 99%.\nStopping training...\n')
-            self.model.stop_training = True
+conf_matrix = multilabel_confusion_matrix(ytrue, yhat)
 
+data = []
+for label, index in label_map.items():
+    row_data = {'Label': label}
+    
+    # Extract TN, FP, FN, TP values
+    tn, fp, fn, tp = conf_matrix[index].ravel()
+    
+    row_data['TN'] = tn
+    row_data['TP'] = tp
+    row_data['FP'] = fp
+    row_data['FN'] = fn
 
-model = Sequential()
-model.add(LSTM(64, return_sequences=True, activation='relu', input_shape=(30,1692)))
-model.add(LSTM(128, return_sequences=True, activation='relu'))
-model.add(LSTM(64, return_sequences=False, activation='relu'))
-model.add(Dense(64, activation='relu'))
-model.add(Dense(32, activation='relu'))
-model.add(Dense(len(label_map), activation='softmax'))
+    
+    data.append(row_data)
 
-model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['categorical_accuracy'])
+# Create DataFrame
+df_conf_matrix = pd.DataFrame(data)
 
-model.fit(X, y, epochs=400, callbacks=[tb_callback, MyCallback()], batch_size=30)
+# Display the DataFrame
+print(df_conf_matrix)
 
-model.summary()
+# df_conf_matrix.to_csv('confusion_matrix_data_25.csv', index=False)
 
-model.save('model.h5')
-
-
+print(accuracy_score(ytrue, yhat))

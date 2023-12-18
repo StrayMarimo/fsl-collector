@@ -1,8 +1,8 @@
-from sklearn.model_selection import train_test_split
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
-from tensorflow.keras.callbacks import TensorBoard
+# from sklearn.model_selection import train_test_split
+# from tensorflow.keras.utils import to_categorical
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import LSTM, Dense
+# from tensorflow.keras.callbacks import TensorBoard
 
 from tensorflow.keras.models import load_model
 import cv2
@@ -12,6 +12,11 @@ import mediapipe as mp
 basic_folder= "MP_Data/basic"
 
 all_subfolders = [f for f in os.listdir(basic_folder) if os.path.isdir(os.path.join(basic_folder, f))]
+# print(all_subfolders)
+
+with open("labels.txt", "w") as file:
+    for folder in all_subfolders:
+        file.write(f"{folder}\n")
 
 # Convert the list to a NumPy array
 model = load_model('model.h5')
@@ -72,7 +77,7 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
 
         # Make detections
         image, results = mediapipe_detection(frame, holistic)
-        print(results)
+        # print(results)
         
         # Draw landmarks
         draw_landmarks(image, results)
@@ -83,6 +88,7 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
         sequence = sequence[-30:]
         
         if len(sequence) == 30:
+            # print("sequence",sequence[0].shape)
             res = model.predict(np.expand_dims(sequence, axis=0))[0]
             print(actions[np.argmax(res)])
             
